@@ -1,4 +1,5 @@
 import pandas as pd
+import glob
 import seaborn as sns
 import matplotlib.pyplot as plt
 import requests
@@ -14,22 +15,12 @@ def download_white_paper_titles():
     open("whitepapers.csv", "wb").write(response.content)
 
 
-def download_white_paper_pdfs():
-    url = 'http://nationalacademies.org/docs/DA524E6332D2E049F5FED8AB6FEA10B33B6B580AE727'
-    response = requests.get(url)
-    open("solar_helio_white_papers.pdf", "wb").write(response.content)
-
-    url = 'https://nationalacademies.org/docs/DA27F10CA4B39D78D506D796D23AA28CF497E2189520'
-    response = requests.get(url)
-    open("atmo_iono_magneto_white_papers.pdf", "wb").write(response.content)
-
-    url = 'https://nationalacademies.org/docs/D74AA75ADB2D476CAEC22D602FAF0FEC83E61398725A'
-    response = requests.get(url)
-    open('solar_wind_magneto_white_papers.pdf', 'wb').write(response.content)
-
-    url = 'https://nationalacademies.org/docs/D67F14C61DF510CE8E01E269D4B5B789A678C161036C'
-    response = requests.get(url)
-    open('general_white_papers.pdf', 'wb').write(response.content)
+def download_white_paper_pdfs(df_titles):
+    for i, url in enumerate(df_titles['1:Upload White Paper  '].values): 
+        response = requests.get(url)
+        title = df_titles['White Paper Title'].values[i]
+        title = title.replace("/","-")
+        open('white_papers/' + title + '.pdf', 'wb').write(response.content)
 
 
 def read_white_paper_titles():
@@ -42,22 +33,13 @@ def read_white_paper_titles():
 
 
 def read_white_paper_pdfs():
-    reader = PdfReader('solar_helio_white_papers.pdf')
+    filenames = glob.glob("white_papers/*.pdf")
+    
     text = ''
-    for page in reader.pages:
-        text+=page.extract_text()
-    
-    reader = PdfReader('atmo_iono_magneto_white_papers.pdf')
-    for page in reader.pages:
-        text+=page.extract_text()
-    
-    reader = PdfReader('solar_wind_magneto_white_papers.pdf')
-    for page in reader.pages:
-        text+=page.extract_text()
-
-    reader = PdfReader('general_white_papers.pdf')
-    for page in reader.pages:
-        text+=page.extract_text()
+    for file in filenames: 
+        reader = PdfReader(file)
+        for page in reader.pages:
+            text+=page.extract_text()
 
     return text
 
@@ -86,16 +68,16 @@ def make_pie_chart(df):
     fig.savefig("pie.png")
 
 
-def make_word_cloud(text):
+def make_word_cloud(text, shape='fas fa-sun'):
     stop_words = get_stop_words('english')
     stop_words.extend(list(string.ascii_lowercase))
-    stop_words.extend(['et al', 'et', 'al', 'et al.', 'physic', 'geophys', 'doi', 'two', 'thu', 'space physic', 'res lett', 'provide', 'can', 'th', 'de', 'also', 're', 'res', 'lett', 'res lett', 'will', 'however'])
+    stop_words.extend(['et al', 'et', 'al', 'et al.', 'physic', 'geophys', 'doi', 'two', 'thu', 'space physic', 'res lett', 'provide', 'can', 'th', 'de', 'also', 're', 'res', 'lett', 'res lett', 'will', 'however', 'org', 'well', 'within', 'white paper', 'doi', 'http', 'https', 'figure', 'observation', 'observations', 'measurement', 'understanding', 'journal'])
     stylecloud.gen_stylecloud(text=text,
-                              icon_name='fas fa-sun',
+                              icon_name=shape, # To select the shape, pick a name from https://fontawesome.com/icons?d=gallery&m=free
                               palette='colorbrewer.diverging.Spectral_11',
                               background_color='black',
                               gradient='radial',
-                              size=1024,
+                              size=1920,
                               custom_stopwords=stop_words)
 
 
@@ -103,9 +85,10 @@ if __name__ == "__main__":
     do_download = False
     if do_download: 
         download_white_paper_titles()
-        download_white_paper_pdfs()
-
     df_titles = read_white_paper_titles()
+    if do_download: 
+        download_white_paper_pdfs(df_titles)
+    
     text_papers = read_white_paper_pdfs()
     #plot_data(df_titles)
     generate_stats(df_titles, text_papers)

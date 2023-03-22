@@ -153,3 +153,4 @@ cython_debug/
 *.pxd
 *.pdf
 .DS_Store
+*.png
